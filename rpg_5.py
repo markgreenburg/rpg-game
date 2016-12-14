@@ -5,6 +5,9 @@ import random
 import time
 
 class Character(object):
+    '''
+    Class definition for all in-game characters
+    '''
     name = '<undefined>'
     health = 10
     power = 5
@@ -13,6 +16,10 @@ class Character(object):
         return self.health > 0
 
     def attack(self, enemy_char):
+        '''
+        Method by which character attacks another character.
+        Damage is dictated by character's hitpoints
+        '''
         if not self.alive():
             return
         print "%s attacks %s" % (self.name, enemy_char.name)
@@ -20,46 +27,125 @@ class Character(object):
         time.sleep(1.5)
 
     def receive_damage(self, points):
+        '''
+        Method by which character receives damage during attack.
+        Decrements character's health counter.
+        '''
         self.health -= points
         print "%s received %d damage." % (self.name, points)
         if self.health <= 0:
             print "%s is dead." % self.name
 
     def print_status(self):
+        '''
+        Prints the current health and power of a given character.
+        '''
         print "%s has %d health and %d power." % (self.name, self.health, self.power)
 
 class Hero(Character):
+    '''
+    The main game character. Has special attribute and mods in
+    receive_damage for incorporating armor.
+    adding armor to self.
+    '''
     name = 'hero'
     health = 10
-    power = 5
     coins = 20
+    power = 5
+    reset_power = power
     armor = 0
-    def __init__(self):
-        super(Hero, self).__init__()
-        self.base_power = self.power
-        self.double_power = self.power * 2
+    evade = 0
+    max_evade = 18
+    using_shield = False
+    inventory = {'armor': 0, 'evade': 0, 'reflective shield': 0, 'tonic': 0, 'super tonic': 0, 'sword': 0}
 
     def attack(self, enemy_char):
+        '''
+        Hero's attack class differs from super in that hero has
+        20 percent chance of doubling power during each attack
+        '''
         # Set up 1 in 5 chance of doing double damage
-        if random.randint(1,5) == 1:
-            self.power = self.double_power
+        double_power = random.random() < .2
+        if double_power:
+            self.power *= 2
             print "%s attacks with double power!!!" % self.name
+        # Is hero using a shield to reflect enemy's attack?
+        if self.using_shield:
+            print "Reflecting %s's attack back to %s!" % (enemy_char.name, enemy_char.name)
+            # Add enemy's power to own power
+            self.power += enemy_char.power
         super(Hero, self).attack(enemy_char)
-        # Reset damage
-        self.power = self.base_power
+        # Reset shield power
+        if self.using_shield:
+            self.power -= enemy_char.power
+        # Reset double power
+        if double_power:
+            self.power /= 2
 
     def receive_damage(self, points):
-        points -= self.armor
-        super(Hero, self).receive_damage(points)
+        '''
+        Before calling super method, need to account for armor in
+        determining by how much to decrease health. Also takes into account evade power.
+        '''
+        # Determine if hero evaded attack
+        evades_attack = random.random() < (self.evade * .05)
+        # If attack evaded, hero receives no damage
+        if evades_attack:
+            print "%s evades attack and receives no damage!" % self.name
+        # If attack not evaded, subtract armor from points to get
+        # total damage (but can't be less than 0)
+        else:
+            if points - self.armor < 0 or self.using_shield:
+                points = 0
+            else:
+                points -= self.armor
+            # Then call the super receive_damage method
+            super(Hero, self).receive_damage(points)
+        # Reset powers in case shield used on last turn. Shield
+        # is lost even if attack was evaded
+        self.using_shield = False
+
+    def receive_bounty(self, enemy_char):
+        self.coins += enemy_char.bounty
 
     def restore(self):
         self.health = 10
-        print "Hero's heath is restored to %d!" % self.health
+        print "%s's heath is restored to %d!" % (self.name, self.health)
         time.sleep(1)
 
     def buy(self, item):
-        self.coins -= item.cost
-        item.apply(hero)
+        if self.coins - item.cost >=0:
+            self.coins -= item.cost
+            self.inventory[item.name] += 1
+            # item.apply(hero)
+        else:
+            print "Not enough money to buy %s!" % item.name
+
+    def apply_item(self):
+        while True:
+            print "====================="
+            print "Pick an item to apply"
+            print "====================="
+            for i in range(len(Store.items)):
+                item = Store.items[i]
+                print "%d: %s (%d)" % (i + 1, item.name, self.inventory[item.name])
+            print "10. leave"
+            user_input = int(raw_input("> "))
+            if user_input == 10:
+                break
+            else:
+                itm_to_apply = Store.items[user_input - 1]
+                instantiated_itm = itm_to_apply()
+                if self.inventory[instantiated_itm.name] > 0:
+                    instantiated_itm.apply(self)
+                    self.inventory[instantiated_itm.name] -= 1
+                else:
+                    print "%s doesn't have any %s!" % (self.name, user_input)
+
+# {'armor': 0, 'evade': 0, 'reflective shield': 0, 'tonic': 0, 'super tonic': 0, 'sword': 0}
+
+# inventory = {Armor: 0, Evade: 0, ReflectiveShield: 0, Tonic: 0, SuperTonic: 0, Sword: 0}
+
 
 class Goblin(Character):
     name = 'goblin'
@@ -87,7 +173,7 @@ class Shadow(Character):
     power = 2
     bounty = 12
     def receive_damage(self, points):
-        if random.randint(1, 10) == 1:
+        if random.random() < .1:
             super(Shadow, self).receive_damage(points)
         else:
             print "%s dodged your attack and received no damage!" % (self.name)
@@ -98,7 +184,7 @@ class Medic(Character):
     power = 1
     bounty = 8
     def receive_damage(self, points):
-        if random.randint(1, 5) == 1:
+        if random.random() < .2:
             print "%s recuperated two hitpoints!!!" % self.name
             points -= 2
         super(Medic, self).receive_damage(points)
@@ -125,6 +211,7 @@ class Battle(object):
             print "1. fight %s" % enemy_char.name
             print "2. do nothing"
             print "3. flee"
+            print "4. apply item from inventory"
             print "> ",
             user_input = int(raw_input())
             if user_input == 1:
@@ -134,12 +221,15 @@ class Battle(object):
             elif user_input == 3:
                 print "Goodbye."
                 exit(0)
+            elif user_input == 4:
+                hero_char.apply_item()
             else:
                 print "Invalid input %r" % user_input
                 continue
             enemy_char.attack(hero_char)
         if hero_char.alive():
-            print "You defeated the %s" % enemy_char.name
+            hero.receive_bounty(enemy_char)
+            print "You defeated the %s and received a bounty of %d coins" % (enemy_char.name, enemy_char.bounty)
             return True
         else:
             print "YOU LOSE!"
@@ -173,11 +263,35 @@ class Armor(object):
         hero_char.armor += 2
         print "%s's armor increased to %s." % (hero_char.name, hero_char.armor)
 
+class Evade(object):
+    cost = 10
+    name = 'evade'
+    def apply(self, hero_char):
+        if hero_char.evade >= hero_char.max_evade:
+            print "Hero is already at max evasion!"
+            print "No money used"
+            hero_char.coins += self.cost
+        else:
+            hero_char.evade += 2
+            print "%s's evade increased to %d." % (hero_char.name, hero_char.evade)
+
+class ReflectShield(object):
+    cost = 25
+    name = 'reflective shield'
+    used = False
+    def apply(self, hero_char):
+        if not self.used:
+            print "%s now has a %s" % (hero_char.name, self.name)
+            hero_char.using_shield = True
+            self.used = True
+        else:
+            print "This %s has already been used!" % self.name
+
 class Store(object):
     # If you define a variable in the scope of a class:
     # This is a class variable and you can access it like
     # Store.items => [Tonic, Sword]
-    items = [Tonic, Sword]
+    items = [Armor, Evade, ReflectShield, Tonic, SuperTonic, Sword]
     def do_shopping(self, hero_char):
         while True:
             print "====================="
@@ -198,7 +312,7 @@ class Store(object):
                 hero_char.buy(item)
 
 hero = Hero()
-enemies = [Goblin(), Wizard()]
+enemies = [Goblin(), Wizard(), Medic(), Shadow(), Zombie()]
 battle_engine = Battle()
 shopping_engine = Store()
 
