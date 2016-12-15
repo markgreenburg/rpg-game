@@ -1,5 +1,6 @@
 """
-Added a store. The hero can now buy a tonic or a sword. A tonic will add 2 to the hero's health wherease a sword will add 2 power.
+RPG text game with some different characters and items. Hero can carry items in
+inventory and use them in battle as needed
 """
 import random
 import time
@@ -13,6 +14,9 @@ class Character(object):
     power = 5
     coins = 20
     def alive(self):
+        '''
+        Checks health of character and returns True if greater than 0
+        '''
         return self.health > 0
 
     def attack(self, enemy_char):
@@ -57,7 +61,8 @@ class Hero(Character):
     evade = 0
     max_evade = 18
     using_shield = False
-    inventory = {'armor': 0, 'evade': 0, 'reflective shield': 0, 'tonic': 0, 'super tonic': 0, 'sword': 0}
+    inventory = {'armor': 0, 'evade': 0, 'reflective shield': 0, 'tonic': 0,
+                 'super tonic': 0, 'sword': 0}
 
     def attack(self, enemy_char):
         '''
@@ -106,15 +111,29 @@ class Hero(Character):
         self.using_shield = False
 
     def receive_bounty(self, enemy_char):
+        '''
+        Increase coin count by amount of enemy character's bounty
+        '''
         self.coins += enemy_char.bounty
 
     def restore(self):
-        self.health = 10
-        print "%s's heath is restored to %d!" % (self.name, self.health)
+        '''
+        Restores health to 10. If original health > 10, method does nothing.
+        '''
+        if self.health < 10:
+            self.health = 10
+            print "%s's health is restored to %d!" % (self.name, self.health)
+        else:
+            print "%s's health is already restored!" % self.name
         time.sleep(1)
 
     def buy(self, item):
-        if self.coins - item.cost >=0:
+        '''
+        Deducts item cost from Hero's coin bank and adds bought item to
+        inventory. If character doesn't have enough money left, purchase won't
+        go through.
+        '''
+        if self.coins - item.cost >= 0:
             self.coins -= item.cost
             self.inventory[item.name] += 1
             # item.apply(hero)
@@ -122,6 +141,11 @@ class Hero(Character):
             print "Not enough money to buy %s!" % item.name
 
     def apply_item(self):
+        '''
+        This method controls the logic for displaying and applying items to
+        character from inventory. Also deducts items from character's inventory
+        once applied.
+        '''
         while True:
             print "====================="
             print "Pick an item to apply"
@@ -142,23 +166,33 @@ class Hero(Character):
                 else:
                     print "%s doesn't have any %s!" % (self.name, user_input)
 
-# {'armor': 0, 'evade': 0, 'reflective shield': 0, 'tonic': 0, 'super tonic': 0, 'sword': 0}
-
-# inventory = {Armor: 0, Evade: 0, ReflectiveShield: 0, Tonic: 0, SuperTonic: 0, Sword: 0}
-
-
 class Goblin(Character):
+    '''
+    Goblin character subclass. Goblin has no special features, items, or
+    attacks.
+    '''
     name = 'goblin'
     health = 6
     power = 2
     bounty = 8
 
 class Wizard(Character):
+    '''
+    Wizard character subclass. Wizards have 50 percent chance of swapping power
+    with whatever character is attacking them. This behavior is defined in them
+    attack method.
+    '''
     name = 'wizard'
     health = 8
     power = 1
     bounty = 10
+
     def attack(self, enemy_char):
+        '''
+        Defines character's attack of another character. Wizard attack method
+        has 50 percent chance of swapping power with player being attacked.
+        Power resets after turn.
+        '''
         swap_power = random.random() > 0.5
         if swap_power:
             print "%s swaps power with %s during attack" % (self.name, enemy_char.name)
@@ -168,17 +202,30 @@ class Wizard(Character):
             self.power, enemy_char.power = enemy_char.power, self.power
 
 class Shadow(Character):
+    '''
+    Shadow character subclass. Shadow character's special ability is dodging
+    attacks ninety percent of the time.
+    '''
     name = 'shadow'
     health = 1
     power = 2
     bounty = 12
+
     def receive_damage(self, points):
+        '''
+        Method for receiving damage for the Shadow character subclass. Shadow
+        has a ninety percent chance of dodging each attack.
+        '''
         if random.random() < .1:
             super(Shadow, self).receive_damage(points)
         else:
             print "%s dodged your attack and received no damage!" % (self.name)
 
 class Medic(Character):
+    '''
+    Medic character subclass. Medic character has special ability to recoup
+    two health after an attack twenty percent of the time.
+    '''
     name = 'medic'
     health = 6
     power = 1
@@ -190,6 +237,10 @@ class Medic(Character):
         super(Medic, self).receive_damage(points)
 
 class Zombie(Character):
+    '''
+    Zombie character subclass. Zombies never die, regardless of remaining
+    health. This special ability is defined in the Zombie's alive() method.
+    '''
     name = 'zombie'
     health = 8
     power = 2
@@ -198,7 +249,17 @@ class Zombie(Character):
         return True
 
 class Battle(object):
+    '''
+    Battle class controls the flow of each individual battle between characters.
+    It also contains all of the decision logic that a player must choose
+    between during each battle (fight, flee, apply item, pass).
+    '''
     def do_battle(self, hero_char, enemy_char):
+        '''
+        Performs a battle between a hero character and a given enemy character.
+        Battle continues until player exits, or one of the characters is not
+        alive().
+        '''
         print "====================="
         print "Hero faces the %s" % enemy_char.name
         print "====================="
@@ -236,37 +297,84 @@ class Battle(object):
             return False
 
 class Tonic(object):
+    '''
+    Tonic is an item available for purchase in the Store. Raises a character's
+    health by two health points and is applied with the Apply() method.
+    '''
     cost = 5
     name = 'tonic'
+
     def apply(self, character):
+        '''
+        Method for applying the Tonic's health effects to a character. Increases
+        a character's health by 2 health points.
+        '''
         character.health += 2
         print "%s's health increased to %d." % (character.name, character.health)
 
 class SuperTonic(Tonic):
+    '''
+    SuperTonic is an item available for purchase in the Store. Raises a
+    character's health by 10 health points, by calling the Tonic class's
+    apply() method multiple times. Change is sticky.
+    '''
     cost = 20
     name = 'super tonic'
+
     def apply(self, character):
+        '''
+        Method for applying the SuperTonic's health effects to a character.
+        Increases health by 10 by calling its parent Tonic's super apply() five
+        times.
+        '''
         for _ in range(5):
             super(SuperTonic, self).apply(character)
 
 class Sword(object):
+    '''
+    Sword is an item available for purchase in the Store. Raises a character's
+    power by 2 hit points. Change is sticky.
+    '''
     cost = 10
     name = 'sword'
+
     def apply(self, hero_char):
+        '''
+        Method for applying the Sword's health effects to a character. Raises
+        character's power by 2 points.
+        '''
         hero_char.power += 2
         print "%s's power increased to %d." % (hero_char.name, hero_char.power)
 
 class Armor(object):
+    '''
+    Armor is an item available for purchase in the Store. Raises a character's
+    armor by 2 points, which aids in deflecting attack power.
+    '''
     cost = 5
     name = 'armor'
+
     def apply(self, hero_char):
+        '''
+        Method by which armor is applied to a character. Increases character's
+        armor by 2.
+        '''
         hero_char.armor += 2
         print "%s's armor increased to %s." % (hero_char.name, hero_char.armor)
 
 class Evade(object):
+    '''
+    Evade is an item available for purchase in the Store. Each time evade is
+    applied, character's evasion increases by 2 to help character dodge attack.
+    '''
     cost = 10
     name = 'evade'
+
     def apply(self, hero_char):
+        '''
+        Method to apply evade item to character. Increases character's evasion
+        by 2 up to a max limit of 18.
+        '''
         if hero_char.evade >= hero_char.max_evade:
             print "Hero is already at max evasion!"
             print "No money used"
@@ -276,10 +384,21 @@ class Evade(object):
             print "%s's evade increased to %d." % (hero_char.name, hero_char.evade)
 
 class ReflectShield(object):
+    '''
+    Single-use item abailable for purchase in the Store. Steals enemy's power
+    for the turn and adds it to the attacking character's power. After one
+    attack, uses itself up and disables itself.
+    '''
     cost = 25
     name = 'reflective shield'
     used = False
+
     def apply(self, hero_char):
+        '''
+        Method to apply Reflectie Shield to character. Adds enemy's power to
+        attacker's power for the turn, then uses itself up. Powers are resets
+        for each character separately in the hero's attack method.
+        '''
         if not self.used:
             print "%s now has a %s" % (hero_char.name, self.name)
             hero_char.using_shield = True
@@ -288,11 +407,17 @@ class ReflectShield(object):
             print "This %s has already been used!" % self.name
 
 class Store(object):
-    # If you define a variable in the scope of a class:
-    # This is a class variable and you can access it like
-    # Store.items => [Tonic, Sword]
+    '''
+    The in-game item store. Displays store, and the items within. Character
+    can choose which items to buy and can then exit the store when done or out
+    of money.
+    '''
     items = [Armor, Evade, ReflectShield, Tonic, SuperTonic, Sword]
     def do_shopping(self, hero_char):
+        '''
+        Main store method that displays the store and items for purchase. Allows
+        player to pick items from which to buy.
+        '''
         while True:
             print "====================="
             print "Welcome to the store!"
@@ -307,20 +432,25 @@ class Store(object):
             if user_input == 10:
                 break
             else:
-                ItemToBuy = Store.items[user_input - 1]
-                item = ItemToBuy()
+                item_to_buy = Store.items[user_input - 1]
+                item = item_to_buy()
                 hero_char.buy(item)
 
-hero = Hero()
-enemies = [Goblin(), Wizard(), Medic(), Shadow(), Zombie()]
-battle_engine = Battle()
-shopping_engine = Store()
+def main():
+    '''
+    Runs the RPG game
+    '''
+    hero = Hero()
+    enemies = [Goblin(), Wizard(), Medic(), Shadow(), Zombie()]
+    battle_engine = Battle()
+    shopping_engine = Store()
+    for enemy in enemies:
+        hero_won = battle_engine.do_battle(hero, enemy)
+        if not hero_won:
+            print "YOU LOSE!"
+            exit(0)
+        shopping_engine.do_shopping(hero)
+    print "YOU WIN!"
 
-for enemy in enemies:
-    hero_won = battle_engine.do_battle(hero, enemy)
-    if not hero_won:
-        print "YOU LOSE!"
-        exit(0)
-    shopping_engine.do_shopping(hero)
-
-print "YOU WIN!"
+if __name__ == "__main__":
+    main()
