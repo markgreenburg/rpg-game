@@ -9,10 +9,12 @@ class Character(object):
     '''
     Class definition for all in-game characters
     '''
-    name = '<undefined>'
-    health = 10
-    power = 5
-    coins = 20
+    def __init__(self):
+        self.name = '<undefined>'
+        self.health = 10
+        self.power = 5
+        self.coins = 20
+
     def alive(self):
         '''
         Checks health of character and returns True if greater than 0
@@ -52,17 +54,20 @@ class Hero(Character):
     receive_damage for incorporating armor.
     adding armor to self.
     '''
-    name = 'hero'
-    health = 10
-    coins = 20
-    power = 5
-    reset_power = power
-    armor = 0
-    evade = 0
-    max_evade = 18
-    using_shield = False
-    inventory = {'armor': 0, 'evade': 0, 'reflective shield': 0, 'tonic': 0,
-                 'super tonic': 0, 'sword': 0}
+
+    def __init__(self):
+        super(Hero, self).__init__()
+        self.name = 'hero'
+        self.health = 10
+        self.coins = 20
+        self.power = 5
+        self.reset_power = self.power
+        self.armor = 0
+        self.evade = 0
+        self.max_evade = 18
+        self.using_shield = False
+        self.inventory = {'armor': 0, 'evade': 0, 'reflective shield': 0,\
+        'tonic': 0, 'super tonic': 0, 'sword': 0}
 
     def attack(self, enemy_char):
         '''
@@ -171,10 +176,12 @@ class Goblin(Character):
     Goblin character subclass. Goblin has no special features, items, or
     attacks.
     '''
-    name = 'goblin'
-    health = 6
-    power = 2
-    bounty = 8
+    def __init__(self):
+        super(Goblin, self).__init__()
+        self.name = 'goblin'
+        self.health = 6
+        self.power = 2
+        self.bounty = 8
 
 class Wizard(Character):
     '''
@@ -182,10 +189,12 @@ class Wizard(Character):
     with whatever character is attacking them. This behavior is defined in them
     attack method.
     '''
-    name = 'wizard'
-    health = 8
-    power = 1
-    bounty = 10
+    def __init__(self):
+        super(Wizard, self).__init__()
+        self.name = 'wizard'
+        self.health = 8
+        self.power = 1
+        self.bounty = 10
 
     def attack(self, enemy_char):
         '''
@@ -206,10 +215,12 @@ class Shadow(Character):
     Shadow character subclass. Shadow character's special ability is dodging
     attacks ninety percent of the time.
     '''
-    name = 'shadow'
-    health = 1
-    power = 2
-    bounty = 12
+    def __init__(self):
+        super(Shadow, self).__init__()
+        self.name = 'shadow'
+        self.health = 1
+        self.power = 2
+        self.bounty = 12
 
     def receive_damage(self, points):
         '''
@@ -226,10 +237,13 @@ class Medic(Character):
     Medic character subclass. Medic character has special ability to recoup
     two health after an attack twenty percent of the time.
     '''
-    name = 'medic'
-    health = 6
-    power = 1
-    bounty = 8
+    def __init__(self):
+        super(Medic, self).__init__()
+        self.name = 'medic'
+        self.health = 6
+        self.power = 1
+        self.bounty = 8
+
     def receive_damage(self, points):
         if random.random() < .2:
             print "%s recuperated two hitpoints!!!" % self.name
@@ -241,11 +255,17 @@ class Zombie(Character):
     Zombie character subclass. Zombies never die, regardless of remaining
     health. This special ability is defined in the Zombie's alive() method.
     '''
-    name = 'zombie'
-    health = 8
-    power = 2
-    bounty = 60
+    def __init__(self):
+        super(Zombie, self).__init__()
+        self.name = 'zombie'
+        self.health = 8
+        self.power = 2
+        self.bounty = 60
+
     def alive(self):
+        '''
+        Zombie never dies, so always returns true.
+        '''
         return True
 
 class Battle(object):
@@ -254,7 +274,9 @@ class Battle(object):
     It also contains all of the decision logic that a player must choose
     between during each battle (fight, flee, apply item, pass).
     '''
-    def do_battle(self, hero_char, enemy_char):
+
+    @staticmethod
+    def do_battle(hero_char, enemy_char):
         '''
         Performs a battle between a hero character and a given enemy character.
         Battle continues until player exits, or one of the characters is not
@@ -289,8 +311,9 @@ class Battle(object):
                 continue
             enemy_char.attack(hero_char)
         if hero_char.alive():
-            hero.receive_bounty(enemy_char)
-            print "You defeated the %s and received a bounty of %d coins" % (enemy_char.name, enemy_char.bounty)
+            hero_char.receive_bounty(enemy_char)
+            print "You defeated the %s and received a bounty of %d coins" \
+            % (enemy_char.name, enemy_char.bounty)
             return True
         else:
             print "YOU LOSE!"
@@ -304,7 +327,8 @@ class Tonic(object):
     cost = 5
     name = 'tonic'
 
-    def apply(self, character):
+    @staticmethod
+    def apply(character):
         '''
         Method for applying the Tonic's health effects to a character. Increases
         a character's health by 2 health points.
@@ -312,7 +336,7 @@ class Tonic(object):
         character.health += 2
         print "%s's health increased to %d." % (character.name, character.health)
 
-class SuperTonic(Tonic):
+class SuperTonic(object):
     '''
     SuperTonic is an item available for purchase in the Store. Raises a
     character's health by 10 health points, by calling the Tonic class's
@@ -321,14 +345,15 @@ class SuperTonic(Tonic):
     cost = 20
     name = 'super tonic'
 
-    def apply(self, character):
+    @staticmethod
+    def apply(character):
         '''
         Method for applying the SuperTonic's health effects to a character.
         Increases health by 10 by calling its parent Tonic's super apply() five
         times.
         '''
-        for _ in range(5):
-            super(SuperTonic, self).apply(character)
+        character.health += 10
+        print "%s's health increased to %d." % (character.name, character.health)
 
 class Sword(object):
     '''
@@ -338,7 +363,8 @@ class Sword(object):
     cost = 10
     name = 'sword'
 
-    def apply(self, hero_char):
+    @staticmethod
+    def apply(hero_char):
         '''
         Method for applying the Sword's health effects to a character. Raises
         character's power by 2 points.
@@ -354,7 +380,8 @@ class Armor(object):
     cost = 5
     name = 'armor'
 
-    def apply(self, hero_char):
+    @staticmethod
+    def apply(hero_char):
         '''
         Method by which armor is applied to a character. Increases character's
         armor by 2.
@@ -370,7 +397,8 @@ class Evade(object):
     cost = 10
     name = 'evade'
 
-    def apply(self, hero_char):
+    @classmethod
+    def apply(cls, hero_char):
         '''
         Method to apply evade item to character. Increases character's evasion
         by 2 up to a max limit of 18.
@@ -378,7 +406,7 @@ class Evade(object):
         if hero_char.evade >= hero_char.max_evade:
             print "Hero is already at max evasion!"
             print "No money used"
-            hero_char.coins += self.cost
+            hero_char.coins += cls.cost
         else:
             hero_char.evade += 2
             print "%s's evade increased to %d." % (hero_char.name, hero_char.evade)
@@ -413,7 +441,9 @@ class Store(object):
     of money.
     '''
     items = [Armor, Evade, ReflectShield, Tonic, SuperTonic, Sword]
-    def do_shopping(self, hero_char):
+
+    @classmethod
+    def do_shopping(cls, hero_char):
         '''
         Main store method that displays the store and items for purchase. Allows
         player to pick items from which to buy.
@@ -424,15 +454,15 @@ class Store(object):
             print "====================="
             print "You have %d coins." % hero_char.coins
             print "What do you want to do?"
-            for i in xrange(len(Store.items)):
-                item = Store.items[i]
+            for i in xrange(len(cls.items)):
+                item = cls.items[i]
                 print "%d. buy %s (%d)" % (i + 1, item.name, item.cost)
             print "10. leave"
             user_input = int(raw_input("> "))
             if user_input == 10:
                 break
             else:
-                item_to_buy = Store.items[user_input - 1]
+                item_to_buy = cls.items[user_input - 1]
                 item = item_to_buy()
                 hero_char.buy(item)
 
